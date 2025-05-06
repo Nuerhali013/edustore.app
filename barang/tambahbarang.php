@@ -1,11 +1,17 @@
 <?php
+
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
 
 include "../koneksi/config.php";
 
+// Mengaktifkan error reporting untuk debugging
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+
 if ($_SERVER['REQUEST_METHOD'] == "POST") {
+
     $kode_barang = trim($_POST['kode_barang']);
     $nama_barang = $_POST['nama_barang'];
     $nama_kategori = trim($_POST['kategori']);
@@ -15,6 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
 
     // Upload gambar
     if (isset($_FILES['gambar']) && $_FILES['gambar']['error'] == 0) {
+
         $target_dir = "../uploads/";
         $file_name = basename($_FILES["gambar"]["name"]);
         $target_file = $target_dir . time() . "_" . $file_name;
@@ -23,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
         $allowed = ['jpg', 'jpeg', 'png', 'gif'];
         if (in_array($imageFileType, $allowed)) {
             if (move_uploaded_file($_FILES["gambar"]["tmp_name"], $target_file)) {
-                $gambar = basename($target_file);
+                $gambar = basename($target_file); // Simpan nama file gambar
             } else {
                 echo "Gagal mengupload gambar.";
                 exit;
@@ -32,11 +39,18 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
             echo "Hanya file JPG, PNG, dan GIF yang diperbolehkan.";
             exit;
         }
+    } else {
+        echo "Tidak ada gambar yang diupload.";
+        exit;
     }
 
     // Cek kategori
     $query_check = "SELECT id_kategori FROM kategoribarang WHERE nama_kategori = ?";
     $stmt_check = $conn->prepare($query_check);
+    if (!$stmt_check) {
+        die("Query Prepare failed: " . $conn->error); // Debugging error prepare statement
+    }
+
     $stmt_check->bind_param("s", $nama_kategori);
     $stmt_check->execute();
     $result_check = $stmt_check->get_result();
@@ -47,6 +61,10 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
     } else {
         $query_insert_kategori = "INSERT INTO kategoribarang (nama_kategori) VALUES (?)";
         $stmt_insert_kategori = $conn->prepare($query_insert_kategori);
+        if (!$stmt_insert_kategori) {
+            die("Query Prepare failed: " . $conn->error); // Debugging error prepare statement
+        }
+
         $stmt_insert_kategori->bind_param("s", $nama_kategori);
         $stmt_insert_kategori->execute();
         $id_kategori = $stmt_insert_kategori->insert_id;
@@ -56,37 +74,40 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
     $query = "INSERT INTO barang (kode_barang, nama_barang, id_kategori, harga, stok, tanggal_ditambahkan, gambar) 
               VALUES (?, ?, ?, ?, ?, NOW(), ?)";
     $stmt = $conn->prepare($query);
-    $stmt->bind_param("ssiids", $kode_barang, $nama_barang, $id_kategori, $harga, $stok, $gambar);
+    if (!$stmt) {
+        die("Query Prepare failed: " . $conn->error); // Debugging error prepare statement
+    }
+
+    // Bind param dengan tipe data yang sesuai
+    $stmt->bind_param("ssiiss", $kode_barang, $nama_barang, $id_kategori, $harga, $stok, $gambar);
 
     if ($stmt->execute()) {
         echo "<script>alert('Barang berhasil ditambahkan!'); window.location='barang.php';</script>";
     } else {
-        echo "Error: " . $conn->error;
+        echo "Error: " . $stmt->error; // Menampilkan error jika query gagal
     }
 }
+
 ?>
 
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Tambah Barang</title>
-  <link rel="stylesheet" href="../CSS/styletambahbarang.css"> 
-  <style>
-    #reader {
-      width: 300px;
-      margin: 20px auto;
-    }
-  </style>
+  <link rel="stylesheet" href="../CSS/styletambahbarang.css">
 </head>
+
 <body>
-<?php 
+  <?php 
     $currentPage = 'barang';
     include '../sidebar/sidebar.php'; 
-?>
-    <h3>Edu Store</h3>
-    <a href="barang.php">Barang</a>
+  ?>
+
+  <h3>Edu Store</h3>
+  <a href="barang.php">Barang</a>
 
   <div class="container">
     <div class="card-form">
@@ -107,10 +128,7 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
         <label>Stok</label>
         <input type="number" name="stok" required>
 
-        <label for="tanggal_ditambahkan">Tanggal Ditambahkan</label>
-        <input type="date" name="tanggal_ditambahkan" id="tanggal_ditambahkan"
-               value="<?php echo date('Y-m-d'); ?>" readonly>
-
+        <!-- Hapus form untuk tanggal, karena sudah otomatis menggunakan NOW() di SQL -->
         <label>Upload Gambar</label>
         <input type="file" name="gambar" accept="image/*">
 
@@ -125,7 +143,6 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
 
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   <script>
-    
     function onScanSuccess(decodedText, decodedResult) {
       document.getElementById("kode_barang").value = decodedText;
       html5QrcodeScanner.clear();
@@ -138,17 +155,18 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
       false
     );
     html5QrcodeScanner.render(onScanSuccess);
+
     document.addEventListener("DOMContentLoaded", function () {
-    const toggleBtn = document.getElementById("toggleSidebar");
-    const sidebar = document.querySelector(".sidebar");
-    const container = document.querySelector(".container");
+      const toggleBtn = document.getElementById("toggleSidebar");
+      const sidebar = document.querySelector(".sidebar");
+      const container = document.querySelector(".container");
 
-    toggleBtn.addEventListener("click", function () {
-      sidebar.classList.toggle("collapsed");
-      toggleBtn.classList.toggle("moved");
+      toggleBtn.addEventListener("click", function () {
+        sidebar.classList.toggle("collapsed");
+        toggleBtn.classList.toggle("moved");
+      });
     });
-  });
-
   </script>
+
 </body>
 </html>
