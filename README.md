@@ -8,7 +8,7 @@ Tampilan aplikasi:
 3. halaman transaksi
 ![image](![image](https://github.com/user-attachments/assets/c49f03f0-cad0-4d93-b2b1-3d06761c1a37)
 4. halaman barang
-![image](![image](https://github.com/user-attachments/assets/0e5779ca-df92-46df-84a3-c347a9ee3d00)
+(![image](https://github.com/user-attachments/assets/0e5779ca-df92-46df-84a3-c347a9ee3d00)
 5. halaman restok barang
 ![image](![image](https://github.com/user-attachments/assets/7da35e77-878b-4fa6-878c-2daaa6cf425c)
 6. halaman pengguna
